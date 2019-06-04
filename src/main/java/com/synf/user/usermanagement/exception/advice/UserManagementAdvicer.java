@@ -1,4 +1,4 @@
-package com.synf.user.usermanagement.advicer;
+package com.synf.user.usermanagement.exception.advice;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -69,9 +69,8 @@ public class UserValidator implements Validator{
 		if(userDTO == null) {
 			throw new DataNotFoundException("Provided userName not exists.");
 		}else {
-			String encryptPassword = passwordEncoder.encode(password);
-			if(!userDTO.getPassword().equals(encryptPassword)) {
-				//throw new UnAuthorizedException("incorrect userName or Password");
+			if(!passwordEncoder.matches(password, userDTO.getPassword())) {
+				throw new UnAuthorizedException("incorrect userName or Password");
 			}
 		}
 		
