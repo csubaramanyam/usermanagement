@@ -44,3 +44,6 @@ REST API
       Note:Here, we need to set imgurImageDeleteHash value of uploadImage api response.
 5. Get UserDetails - /user/{userName} 
 
+Mapstruck - follow below URL to configure mapstruck in eclipse
+
+https://manios.org/2017/08/09/configure-eclipse-in-order-to-build-mapstruct-in-java-projects
