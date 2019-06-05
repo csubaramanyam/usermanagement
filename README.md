@@ -1,4 +1,4 @@
-implemented few APIs to interact with Imgur API for upload, view and delete image after successful authentication of user.
+implemented APIs to interact with Imgur API for upload, view and delete image after successful authentication of user.
 
 This application integrated with swagger for API testing and mapstruct for copying properties from one entity to another entity.
 
@@ -7,6 +7,8 @@ Configured server port with 8092 in application.properties file
 Swagger URL - http://localhost:8092/swagger-ui.html#/
 
 H2-Console - http://localhost:8092/h2-console
+
+After opening swagger paeg in browser, click on try it out option which is available right side of each API
 
 REST API
 
@@ -43,6 +45,7 @@ REST API
       }
       Note:Here, we need to set imgurImageDeleteHash value of uploadImage api response.
 5. Get UserDetails - /user/{userName} 
+
 
 Mapstruck - follow below URL to configure mapstruck in eclipse
 
