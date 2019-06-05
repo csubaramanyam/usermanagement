@@ -1,5 +1,6 @@
 package com.synf.user.usermanagement.service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +18,8 @@ import com.synf.user.usermanagement.dao.model.User;
 import com.synf.user.usermanagement.dao.model.UserImage;
 import com.synf.user.usermanagement.dao.repository.UserImageRepository;
 import com.synf.user.usermanagement.dao.repository.UserRepository;
-import com.synf.user.usermanagement.mapper.ResourceMapper;
+import com.synf.user.usermanagement.mapper.UserImageMapper;
+import com.synf.user.usermanagement.mapper.UserMapper;
 import com.synf.user.usermanagement.model.UserDTO;
 import com.synf.user.usermanagement.model.UserImageDTO;
 import com.synf.user.usermanagement.model.UserResponseDTO;
@@ -37,7 +39,10 @@ public class UserService {
 	private ImgurService imgurService;
 	
 	@Autowired
-	private ResourceMapper resourceMapper;
+	private UserMapper userMapper;
+	
+	@Autowired
+	private UserImageMapper userImageMapper;
 	
 	/**
 	 * This method used to save user registration details
@@ -48,9 +53,9 @@ public class UserService {
 	@Transactional
 	public UserDTO saveUser(final UserDTO  reqUserDTO) {
 		LOGGER.info("Entered into saveUser method with UserDTO:{}", reqUserDTO);
-		User user = new User(reqUserDTO.getUserId(), reqUserDTO.getUserName(), reqUserDTO.getPassword(), reqUserDTO.getEmail());
+		User user = userMapper.dtoToEntity(reqUserDTO);
 		user = userRepository.save(user);
-		final UserDTO  resUserDTO = new UserDTO(user.getUserId(), user.getUserName(), user.getPassword(), user.getEmail());
+		final UserDTO  resUserDTO = userMapper.entityToDto(user);
 		LOGGER.info("Exiting from saveUser method after registering user with details:{}", resUserDTO);
 		return resUserDTO;
 	}
@@ -65,7 +70,7 @@ public class UserService {
 		UserDTO userDTO = null;
 		User user = userRepository.findByUserName(userName);
 		if(user != null) {
-			userDTO = new UserDTO(user.getUserId(), user.getUserName(), user.getPassword(), user.getEmail());
+			userDTO = userMapper.entityToDto(user);
 		}
 		return userDTO;
 	}
@@ -79,9 +84,9 @@ public class UserService {
 		LOGGER.info("Entered into uploadImage method");
 		
 		//calling imgur service to upload image
-		//final String responseBody = imgurService.upload(data);
+		final String responseBody = imgurService.upload(data);
 		
-		final String responseBody = "{\"data\":{\"id\":\"7GyB3Wo\",\"title\":null,\"description\":null,\"datetime\":1559536419,\"type\":\"image\\/png\",\"animated\":false,\"width\":542,\"height\":310,\"size\":8754,\"views\":0,\"bandwidth\":0,\"vote\":null,\"favorite\":false,\"nsfw\":null,\"section\":null,\"account_url\":null,\"account_id\":0,\"is_ad\":false,\"in_most_viral\":false,\"has_sound\":false,\"tags\":[],\"ad_type\":0,\"ad_url\":\"\",\"edited\":\"0\",\"in_gallery\":false,\"deletehash\":\"vKfACtjntqiRmsR\",\"name\":\"\",\"link\":\"https:\\/\\/i.imgur.com\\/7GyB3Wo.png\"},\"success\":true,\"status\":200}";
+		//final String responseBody = "{\"data\":{\"id\":\"7GyB3Wo\",\"title\":null,\"description\":null,\"datetime\":1559536419,\"type\":\"image\\/png\",\"animated\":false,\"width\":542,\"height\":310,\"size\":8754,\"views\":0,\"bandwidth\":0,\"vote\":null,\"favorite\":false,\"nsfw\":null,\"section\":null,\"account_url\":null,\"account_id\":0,\"is_ad\":false,\"in_most_viral\":false,\"has_sound\":false,\"tags\":[],\"ad_type\":0,\"ad_url\":\"\",\"edited\":\"0\",\"in_gallery\":false,\"deletehash\":\"vKfACtjntqiRmsR\",\"name\":\"\",\"link\":\"https:\\/\\/i.imgur.com\\/7GyB3Wo.png\"},\"success\":true,\"status\":200}";
 		
 		final Map<String, String> responseMap = deSerializeJson(responseBody);
 		
@@ -94,7 +99,7 @@ public class UserService {
 		
 		final UserImage savedUserImage = userImageRepository.save(userImage);
 		
-		final UserImageDTO userImageDTO = resourceMapper.convertToUserImageDTO(savedUserImage);
+		final UserImageDTO userImageDTO = userImageMapper.entityToDto(savedUserImage);
 		
 		LOGGER.info("Exiting from uploadImage method with userImage details:{}", userImageDTO);
 		
@@ -106,6 +111,7 @@ public class UserService {
 	 * @param data
 	 * @throws JSONException 
 	 */
+	@Transactional
 	public Boolean deleteImage(final String deleteHash, final Integer userId) {
 		LOGGER.info("Entered into deleteImage method");
 		
@@ -138,12 +144,12 @@ public class UserService {
 	 * @param data
 	 * @throws JSONException 
 	 */
-	public String viewImage(final String imageId) {
+	public String getImageByImageId(final String imageId) {
 		LOGGER.info("Entered into viewImage method");
 		
 		boolean isDeleted = false;
 		
-		final String responseBody = imgurService.view(imageId);
+		final String responseBody = imgurService.getImageByImageId(imageId);
 		
 		LOGGER.info("Exiting from viewImage method with response:{}", isDeleted);
 		
@@ -156,7 +162,7 @@ public class UserService {
 	 * @param userName
 	 * @return
 	 */
-	public UserResponseDTO viewUser(final String userName) {
+	public UserResponseDTO getUserDetailsByUserName(final String userName) {
 		
 		LOGGER.info("Entered into viewUser method with userName:{}", userName);
 
@@ -167,7 +173,18 @@ public class UserService {
 		final List<UserImage> userImageList = userImageRepository.findByUserId(user.getUserId());
 		
 		//prepare response dto
-		final UserResponseDTO userResponseDTO = resourceMapper.convertToUserResponseDTO(user, userImageList);
+		UserResponseDTO userResponseDTO = new UserResponseDTO();
+		userResponseDTO.setUserId(user.getUserId());
+		userResponseDTO.setUserName(user.getUserName());
+		userResponseDTO.setEmail(user.getEmail());
+		List<UserImageDTO> userImageDTOList = new ArrayList<>();
+		if(userImageList != null && !userImageList.isEmpty()) {
+			userImageList.forEach(i -> {
+				userImageDTOList.add(userImageMapper.entityToDto(i));
+			});
+		}
+		
+		userResponseDTO.setUserImages(userImageDTOList);
 		
 		LOGGER.info("Exiting from viewUser method with userDetails:{} for userName:{}", userResponseDTO, userName);
 		

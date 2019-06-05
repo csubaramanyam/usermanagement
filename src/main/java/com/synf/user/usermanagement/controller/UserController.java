@@ -18,14 +18,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.synf.user.usermanagement.model.ImageRequestDTO;
 import com.synf.user.usermanagement.model.UserDTO;
 import com.synf.user.usermanagement.model.UserImageDTO;
 import com.synf.user.usermanagement.model.UserResponseDTO;
 import com.synf.user.usermanagement.service.UserService;
 import com.synf.user.usermanagement.validator.UserValidator;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+
 @RestController
 @RequestMapping(value = "/user")
+@Api(value = "user", description = "REST API for User Management", tags = {"user"})
 public class UserController {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(UserController.class);
@@ -40,6 +45,7 @@ public class UserController {
 	private PasswordEncoder passwordEncoder;
 
 	@RequestMapping(value="/registration", method = RequestMethod.POST, produces=MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "User Registration")
 	public UserDTO registration(@RequestBody UserDTO userDTO, BindingResult errors) throws BindException {
 		LOGGER.info("Entered into registration method");
 		
@@ -63,7 +69,25 @@ public class UserController {
 		return registeredUserDTO;
 	}
 	
-	@RequestMapping(value = "/imgur/upload", method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@RequestMapping(value="/{userName}", method = RequestMethod.GET, produces=MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "Get a user by username")
+	public UserResponseDTO getUserDetailsByUserName(@PathVariable String userName) {
+		
+		LOGGER.info("Entered into viewUser method with userName:{}", userName);
+		
+		//validating user
+		userValidator.validateUser(userName);
+		
+		final UserResponseDTO userResponseDTO = userService.getUserDetailsByUserName(userName);
+		
+		LOGGER.info("Exiting from viewUser method with userDetails:{} for userName:{}", userResponseDTO, userName);
+		
+		return userResponseDTO;
+	}
+
+	//Start - image related API
+	@RequestMapping(value = "/image", method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "upload image")
 	public UserImageDTO uploadImage(@RequestParam("file") MultipartFile file, @RequestParam("userName") String userName,
 			@RequestParam("password") String password) throws IOException{
 		
@@ -82,50 +106,38 @@ public class UserController {
 		return userImageDTO;
 	}
 	
-	@RequestMapping(value = "/imgur/delete/{deletehash}", method = RequestMethod.DELETE, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public Boolean delete(@PathVariable String deletehash, @RequestParam("userName") String userName,
-			@RequestParam("password") String password) throws IOException{
+	@RequestMapping(value = "/image", method = RequestMethod.DELETE, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "delete image")
+	public Boolean delete(@RequestBody ImageRequestDTO requestDTO) throws IOException{
 		
-		LOGGER.info("Entered into delete image method with userName:{}", userName);
+		LOGGER.info("Entered into delete image method with userName:{}", requestDTO.getUserName());
 		
 		//validating user
-		UserDTO userDTO = userValidator.validateUserAndPassword(userName, password);
+		UserDTO userDTO = userValidator.validateUserAndPassword(requestDTO.getUserName(), requestDTO.getPassword());
 		
-		boolean isDeleted = userService.deleteImage(deletehash, userDTO.getUserId());
+		boolean isDeleted = userService.deleteImage(requestDTO.getHash(), userDTO.getUserId());
 		
-		LOGGER.info("Exiting from delete image {} method for userName:{}", deletehash, userName);
+		LOGGER.info("Exiting from delete image {} method for userName:{}", requestDTO.getHash(), requestDTO.getUserName());
 		
 		return isDeleted;
 	}
 
-	@RequestMapping(value="/{userName}", method = RequestMethod.GET, produces=MediaType.APPLICATION_JSON_VALUE)
-	public UserResponseDTO viewUser(@PathVariable String userName) {
-		
-		LOGGER.info("Entered into viewUser method with userName:{}", userName);
-		
-		//validating user
-		userValidator.validateUser(userName);
-		
-		final UserResponseDTO userResponseDTO = userService.viewUser(userName);
-		
-		LOGGER.info("Exiting from viewUser method with userDetails:{} for userName:{}", userResponseDTO, userName);
-		
-		return userResponseDTO;
-	}
 	
-	@RequestMapping(value = "/imgur/{imageId}", method = RequestMethod.GET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public String view(@PathVariable String imageId, @RequestParam("userName") String userName,
-			@RequestParam("password") String password) throws IOException{
+	@RequestMapping(value = "/image/getImage", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ApiOperation(value = "get image by imageId")
+	public String getImageByImageId(@RequestBody ImageRequestDTO requestDTO) throws IOException{
 		
-		LOGGER.info("Entered into view image method with userName:{}", userName);
+		LOGGER.info("Entered into view image method with userName:{}", requestDTO.getUserName());
 		
 		//validating user
-		userValidator.validateUserAndPassword(userName, password);
+		userValidator.validateUserAndPassword(requestDTO.getUserName(), requestDTO.getPassword());
 		
-		String response = userService.viewImage(imageId);
+		String response = userService.getImageByImageId(requestDTO.getHash());
 		
-		LOGGER.info("Exiting from view image {} method for userName:{}", response, userName);
+		LOGGER.info("Exiting from view image {} method for userName:{}", response, requestDTO.getUserName());
 		
 		return response;
 	}
+	
+	// END - image related API
 }

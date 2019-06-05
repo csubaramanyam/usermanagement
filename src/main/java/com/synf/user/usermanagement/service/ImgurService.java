@@ -138,7 +138,7 @@ public class ImgurService {
 	 * 
 	 * @param deleteHash holds the deletehash value
 	 */
-	public String view(final String imageId) {
+	public String getImageByImageId(final String imageId) {
 	
 		LOGGER.info("Entered into view method");
 		
